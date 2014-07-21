@@ -1,4 +1,4 @@
-octavius-drupal
+Octavius Module for drupal
 ===============
 
 Drupal module for PALASTHOTEL Octavius
