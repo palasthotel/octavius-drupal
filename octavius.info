@@ -1,0 +1,4 @@
+name = Octavius
+description = Gets information from PALASTHOTEL Octavius service
+package = Palasthotel
+core = 7.x

@@ -1,0 +1,146 @@
+<?php
+
+/**
+* Register menus and urls
+*/
+function octavius_menu() 
+{
+	return array(
+		'admin/config/octavius'=>array(
+			'title'=>'Octavius',
+			'description'=>'Configure Octavius',
+			'page callback' => 'system_admin_menu_block_page',
+		   'file' => 'system.admin.inc',
+		   'file path' => drupal_get_path('module', 'system'),
+			'access arguments'=>array('administer octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+		),
+		'admin/config/octavius/settings'=>array(
+			'title'=>'Octavius settings',
+			'description'=>'Configure Octavius',
+			'page callback'=>'drupal_get_form',
+			'page arguments'=>array('octavius_admin_settings'),
+			'access arguments'=>array('administer octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+		),
+		'__api/octavius/list' => array(
+			'page callback' => 'octavius_get_the_url_list',
+			'access callback'=>'octavius_public_access',
+		),
+		
+	);
+}
+/**
+*	Grant public access
+*/
+function octavius_public_access()
+{
+	return true;
+}
+
+/**
+*	Settings page for octavius service
+*/
+function octavius_admin_settings()
+{
+	$form=array();
+	
+	$form['service'] = array(
+		'#type'=>'fieldset',
+		'#title'=>t('Octavius service settings'),
+	);
+
+	$form["service"]['service_client_name'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('Client name in service installation'),
+		'#default_value' => variable_get("service_client_name"),
+	);
+	// TODO: should be service_client_name in next step
+	$form["service"]['ht_user'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('User'),
+		'#default_value' => variable_get("ht_user"),
+	);
+	
+	$form["service"]['ht_passwd'] = array(
+		'#type'=>'password_confirm',
+		'#required' => FALSE,
+	);
+
+	$fieldmap=field_info_field_map();
+	$types=node_type_get_types();
+	$type_slugs=array_keys($types);
+
+	foreach($type_slugs as $type_slug)
+	{
+		$options=array();
+		$first=NULL;
+		foreach($fieldmap as $name=>$data)
+		{
+			if(isset($data['bundles']['node']) && in_array($type_slug, $data['bundles']['node']))
+			{
+				if($data['type'] =='number_float')
+				{
+					$options[$name]=$name;
+					if($first==NULL)
+						$first=$name;
+				}
+			}
+		}
+		if(count($options)>0)
+		{
+			$form[$type_slug]=array(
+				'#type'=>'fieldset',
+				'#title'=>$type_slug
+			);
+			$form[$type_slug]['octavius_'.$type_slug.'_enabled']=array(
+				'#type'=>'checkbox',
+				'#default_value'=>variable_get('octavius_'.$type_slug.'_enabled',0),
+				'#title'=>t('Shopify'),
+			);
+
+			$form[$type_slug]['octavius_'.$type_slug.'_field']=array(
+				'#type'=>'radios',
+				'#title'=>t('Price'),
+				'#default_value'=>variable_get('octavius_'.$type_slug.'_field',$first),
+				'#options'=>$options,
+			);
+		}
+	}
+
+	return system_settings_form($form);
+}
+/**
+ * Return JSON formed URL List 
+ */
+function octavius_get_the_url_list($page = 1){
+	global $base_url;
+	$root = array();
+    $root["pubDate"] = date("D, d M Y H:i:s O");
+    $root["lastBuildDate"] = date("D, d M Y H:i:s O");
+    $root["password"] = variable_get("ht_passwd");
+    $root["items"] = array();
+
+    $limit = 10000;
+    $low_limit = ( $page - 1 )  * $limit ;
+
+	$result = db_query("SELECT n.nid as nid, n.type as type , n.created as created FROM {node} n LIMIT $low_limit, $limit");
+	
+	foreach ($result as $record) {
+		$root["items"][] = array(
+			"type" => $record->type,
+			"id" => $record->nid,
+			"guid" => $base_url."/node/".$record->nid,
+			"permalink" => drupal_get_path_alias('node/'.$record->nid),
+			"pubDate" => date("Y-m-d H:i:s", $record->created),
+		);
+
+	}
+
+    header("Content-Type: application/json;charset=UTF-8");
+    echo json_encode($root);
+	exit();
+}
+
+
+?>
