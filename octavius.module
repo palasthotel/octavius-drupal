@@ -136,7 +136,7 @@ function octavius_get_the_url_list($page = 1){
 			"type" => $record->type,
 			"id" => $record->nid,
 			"guid" => $base_url."/node/".$record->nid,
-			"permalink" => drupal_get_path_alias('node/'.$record->nid),
+			"permalink" => "/".drupal_get_path_alias('node/'.$record->nid),
 			"pubDate" => date("Y-m-d H:i:s", $record->created),
 		);
 
@@ -178,7 +178,6 @@ function octavius_get_top($type, $url, $htaccess){
 
     $ch = curl_init ();
     $url = "http://octavius-dev.palasthotel.de".$url;
-    var_dump($url);
     curl_setopt($ch,CURLOPT_URL,$url);
     curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
     curl_setopt($ch,CURLOPT_USERPWD,$htaccess);
@@ -186,12 +185,10 @@ function octavius_get_top($type, $url, $htaccess){
 
     $result = curl_exec ($ch); 
 	$json_result = json_decode($result, true);
-	var_dump($json_result);
-	die();
 	$values = array();
 	// build values
 	foreach ($json_result as $key => $record) {
-		$values[] = "('".$record["page_id"]."','".$record["views"]."')";
+		$values[] = "('".$record["page_id"]."','".$record["pageviews"]."')";
 	}
 	$values_string = implode(",", $values);
 
