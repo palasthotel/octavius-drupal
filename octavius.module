@@ -24,11 +24,11 @@ function octavius_menu()
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'__api/octavius/list' => array(
-			'page callback' => 'octavius_get_the_url_list',
+			'page callback' => 'octavius_url_list',
 			'access callback'=>'octavius_public_access',
 		),
 		'__api/octavius/importer' => array(
-			'page callback' => 'octavius_get_data_from_remote',
+			'page callback' => 'octavius_save_data_from_service',
 			'access callback'=>'octavius_public_access',
 		),
 		
@@ -118,7 +118,7 @@ function octavius_admin_settings()
 /**
  * Return JSON formed URL List 
  */
-function octavius_get_the_url_list($page = 1){
+function octavius_url_list($page = 1){
 	global $base_url;
 	$root = array();
     $root["pubDate"] = date("D, d M Y H:i:s O");
@@ -144,19 +144,28 @@ function octavius_get_the_url_list($page = 1){
 
     header("Content-Type: application/json;charset=UTF-8");
     echo json_encode($root);
-	exit();
+	return;
+}
+
+/**
+*	Clean octavius tables for newer data.
+*/
+function octavius_clean_table($type){
+	return db_query("TRUNCATE TABLE {octavius_top_list_".$type."}");
 }
 
 /**
  * Set Octavius Page Data to Meta Field
 */
-function octavius_get_data_from_remote() {
+function octavius_save_data_from_service() {
 	
 	$octavius_url = "http://octavius-dev.palasthotel.de";
 
 	// get Latest Date from Octavius
 	$htaccess = variable_get("ht_user").":".variable_get("ht_passwd");
 	$location = $octavius_url."/v1.0/".variable_get("service_client_name")."/getTopLists";
+	// var_dump($location);
+
 	$ch = curl_init ();
     curl_setopt($ch,CURLOPT_URL,$location);
     curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
@@ -165,15 +174,18 @@ function octavius_get_data_from_remote() {
 
     $result = curl_exec ($ch); 
     $json_result = json_decode($result, true);
+	// var_dump($json_result);
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
-    	$result = octavius_get_top($type, $source["url"], $htaccess);
+    	octavius_clean_table($type);
+    	$result = octavius_save_top($type, $source["url"], $htaccess);
+    	// var_dump($result);
     }
     module_invoke_all('octavius_new_data');
-    die();
+    return;
 }
 
-function octavius_get_top($type, $url, $htaccess){
+function octavius_save_top($type, $url, $htaccess){
 	// Get Latest Data from Octavius
 
     $ch = curl_init ();
@@ -196,11 +208,35 @@ function octavius_get_top($type, $url, $htaccess){
 
 }
 /**
-*	Gets top lists from database of octavius.
+*	Gets top lists by type from database of octavius.
 */
-function octavius_get_top_($type){
-	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDERD BY views DESC");
+function octavius_get_top($type){
+	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDER BY views DESC");
 	return $result->fetchAll();
+}
+/**
+*	Gets newest local data of the day.
+*/
+function octavius_get_top_day(){
+	return octavius_get_top("day");
+}
+/**
+*	Gets newest local data of the week.
+*/
+function octavius_get_top_week(){
+	return octavius_get_top("week");
+}
+/**
+*	Gets newest local data of the month.
+*/
+function octavius_get_top_month(){
+	return octavius_get_top("month");
+}
+/**
+*	Gets newest local data of the ever.
+*/
+function octavius_get_top_week(){
+	return octavius_get_top("ever");
 }
 
 
