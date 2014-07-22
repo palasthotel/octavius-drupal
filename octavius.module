@@ -169,8 +169,8 @@ function octavius_get_data_from_remote() {
     	// Get Latest Data from Octavius
     	$result = octavius_get_top($type, $source["url"], $htaccess);
     }
+    module_invoke_all('octavius_new_data');
     die();
-    
 }
 
 function octavius_get_top($type, $url, $htaccess){
@@ -194,6 +194,13 @@ function octavius_get_top($type, $url, $htaccess){
 
 	return db_query("INSERT INTO {octavius_top_list_".$type."} (nid, views) VALUES $values_string");
 
+}
+/**
+*	Gets top lists from database of octavius.
+*/
+function octavius_get_top_($type){
+	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDERD BY views DESC");
+	return $result->fetchAll();
 }
 
 
