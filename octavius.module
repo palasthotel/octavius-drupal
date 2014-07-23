@@ -62,25 +62,25 @@ function octavius_service_settings()
 		'#title'=>t('Service settings'),
 	);
 
-	$form["service"]['service_client_name'] = array(
+	$form["service"]['octavius_service_client_name'] = array(
 		'#type'=>'textfield',
 		'#title'=>t('Client name in service installation'),
 		'#default_value' => $settings->client_name,
 	);
 	// TODO: should be service_client_name in next step
-	$form["service"]['ht_user'] = array(
+	$form["service"]['octavius_ht_user'] = array(
 		'#type'=>'textfield',
 		'#title'=>t('User'),
 		'#default_value' => $settings->ht_user,
 	);
 	
-	$form["service"]['ht_passwd'] = array(
+	$form["service"]['octavius_ht_passwd'] = array(
 		'#type'=>'textfield',
 		'#title' => t('Password'),
 		'#default_value' => $settings->ht_passwd,
 	);
 
-	$form["service"]['service_url'] = array(
+	$form["service"]['octavius_service_url'] = array(
 		'#type'=>'textfield',
 		'#title' => t('URL to Octavius service'),
 		'#default_value' => $settings->url,
@@ -102,7 +102,7 @@ function octavius_performance_settings()
 		'#type'=>'fieldset',
 		'#title'=>t('Performance settings'),
 	);
-	$form["performance"]['page_list_limit'] = array(
+	$form["performance"]['octavius_page_list_limit'] = array(
 		'#type'=>'textfield',
 		'#title'=>t('How many Nodes should be delivered on a single Page?'),
 		'#default_value' => $settings->page_list_limit,
@@ -117,7 +117,7 @@ function octavius_performance_settings()
 */
 function octavius_get_settings(){
 	return (Object) array(
-		"page_list_limit" => variable_get("octavius_performance_page_list_limit",1000),
+		"page_list_limit" => variable_get("octavius_page_list_limit",1000),
 		"ht_passwd" => variable_get("octavius_ht_passwd"),
 		"ht_user" => variable_get("octavius_ht_user"),
 		"client_name" => variable_get("octavius_service_client_name"),
@@ -217,7 +217,7 @@ function octavius_curl($url){
 	
 	$settings = octavius_get_settings();
 	$octavius_url = $settings->url;
-	
+
 	// handle missing slashes
 	if(substr($octavius_url, -1) == "/" && substr($url, 0, 1) == "/"){
 		$octavius_url = substr($settings->url, 0, -1);
