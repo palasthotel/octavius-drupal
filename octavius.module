@@ -15,11 +15,19 @@ function octavius_menu()
 			'access arguments'=>array('administer octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
-		'admin/config/octavius/settings'=>array(
-			'title'=>'Octavius settings',
-			'description'=>'Configure Octavius',
+		'admin/config/octavius/service'=>array(
+			'title'=>'Service settings',
+			'description'=>'Configure Octavius service',
 			'page callback'=>'drupal_get_form',
-			'page arguments'=>array('octavius_admin_settings'),
+			'page arguments'=>array('octavius_service_settings'),
+			'access arguments'=>array('administer octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+		),
+		'admin/config/octavius/performance'=>array(
+			'title'=>'Performance settings',
+			'description'=>'Configure Octavius performance',
+			'page callback'=>'drupal_get_form',
+			'page arguments'=>array('octavius_performance_settings'),
 			'access arguments'=>array('administer octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
@@ -30,8 +38,7 @@ function octavius_menu()
 		'__api/octavius/importer' => array(
 			'page callback' => 'octavius_save_data_from_service',
 			'access callback'=>'octavius_public_access',
-		),
-		
+		),		
 	);
 }
 /**
@@ -45,80 +52,90 @@ function octavius_public_access()
 /**
 *	Settings page for octavius service
 */
-function octavius_admin_settings()
+function octavius_service_settings()
 {
 	$form=array();
+	$settings = octavius_get_settings();
 	
 	$form['service'] = array(
 		'#type'=>'fieldset',
-		'#title'=>t('Octavius service settings'),
+		'#title'=>t('Service settings'),
 	);
 
 	$form["service"]['service_client_name'] = array(
 		'#type'=>'textfield',
 		'#title'=>t('Client name in service installation'),
-		'#default_value' => variable_get("service_client_name"),
+		'#default_value' => $settings->client_name,
 	);
 	// TODO: should be service_client_name in next step
 	$form["service"]['ht_user'] = array(
 		'#type'=>'textfield',
 		'#title'=>t('User'),
-		'#default_value' => variable_get("ht_user"),
+		'#default_value' => $settings->ht_user,
 	);
 	
 	$form["service"]['ht_passwd'] = array(
 		'#type'=>'textfield',
 		'#title' => t('Password'),
-		'#default_value' => variable_get("ht_passwd"),
+		'#default_value' => $settings->ht_passwd,
 	);
 
-	// $fieldmap=field_info_field_map();
-	// $types=node_type_get_types();
-	// $type_slugs=array_keys($types);
-
-	// foreach($type_slugs as $type_slug)
-	// {
-	// 	$options=array();
-	// 	$first=NULL;
-	// 	foreach($fieldmap as $name=>$data)
-	// 	{
-	// 		if(isset($data['bundles']['node']) && in_array($type_slug, $data['bundles']['node']))
-	// 		{
-	// 			if($data['type'] =='number_float')
-	// 			{
-	// 				$options[$name]=$name;
-	// 				if($first==NULL)
-	// 					$first=$name;
-	// 			}
-	// 		}
-	// 	}
-	// 	if(count($options)>0)
-	// 	{
-	// 		$form[$type_slug]=array(
-	// 			'#type'=>'fieldset',
-	// 			'#title'=>$type_slug
-	// 		);
-	// 		$form[$type_slug]['octavius_'.$type_slug.'_enabled']=array(
-	// 			'#type'=>'checkbox',
-	// 			'#default_value'=>variable_get('octavius_'.$type_slug.'_enabled',0),
-	// 			'#title'=>t('Shopify'),
-	// 		);
-
-	// 		$form[$type_slug]['octavius_'.$type_slug.'_field']=array(
-	// 			'#type'=>'radios',
-	// 			'#title'=>t('Price'),
-	// 			'#default_value'=>variable_get('octavius_'.$type_slug.'_field',$first),
-	// 			'#options'=>$options,
-	// 		);
-	// 	}
-	// }
+	$form["service"]['service_url'] = array(
+		'#type'=>'textfield',
+		'#title' => t('URL to Octavius service'),
+		'#default_value' => $settings->url,
+	);
 
 	return system_settings_form($form);
+	
 }
+
+/**
+*	Settings page for octavius performance
+*/
+function octavius_performance_settings()
+{
+	$form=array();
+	$settings = octavius_get_settings();
+
+	$form['performance'] = array(
+		'#type'=>'fieldset',
+		'#title'=>t('Performance settings'),
+	);
+	$form["performance"]['page_list_limit'] = array(
+		'#type'=>'textfield',
+		'#title'=>t('How many Nodes should be delivered on a single Page?'),
+		'#default_value' => $settings->page_list_limit,
+	);
+
+	return system_settings_form($form);
+	
+}
+
+/**
+*	Collects all Settings.
+*/
+function octavius_get_settings(){
+	return (Object) array(
+		"page_list_limit" => variable_get("octavius_performance_page_list_limit",1000),
+		"ht_passwd" => variable_get("octavius_ht_passwd"),
+		"ht_user" => variable_get("octavius_ht_user"),
+		"client_name" => variable_get("octavius_service_client_name"),
+		"url" => variable_get("octavius_service_url", "http://octavius-dev.palasthotel.de"),
+	);
+
+}
+
 /**
  * Return JSON formed URL List 
  */
-function octavius_url_list($page = 1){
+function octavius_url_list($page = null){
+
+	// redirect to /1 if no page number is given
+	if($page == null) drupal_goto("__api/octavius/list/1", array(), 301);
+
+	$settings = octavius_get_settings();
+
 	global $base_url;
 	$root = array();
     $root["pubDate"] = date("D, d M Y H:i:s O");
@@ -126,7 +143,7 @@ function octavius_url_list($page = 1){
     
     $root["items"] = array();
 
-    $limit = 10000;
+    $limit = $settings->page_list_limit;
     $low_limit = ( $page - 1 )  * $limit ;
 
 	$result = db_query("SELECT n.nid as nid, n.type as type , n.created as created FROM {node} n LIMIT $low_limit, $limit");
@@ -158,22 +175,11 @@ function octavius_clean_table($type){
  * Set Octavius Page Data to Meta Field
 */
 function octavius_save_data_from_service() {
-	
-	$octavius_url = "http://octavius-dev.palasthotel.de";
 
 	// get Latest Date from Octavius
-	$htaccess = variable_get("ht_user").":".variable_get("ht_passwd");
-	$location = $octavius_url."/v1.0/".variable_get("service_client_name")."/getTopLists";
-	// var_dump($location);
+	$path = "/v1.0/".$settings->client_name."/getTopLists";
 
-	$ch = curl_init ();
-    curl_setopt($ch,CURLOPT_URL,$location);
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-    curl_setopt($ch,CURLOPT_USERPWD,$htaccess);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-    $result = curl_exec ($ch); 
-    $json_result = json_decode($result, true);
+    $json_result = json_decode(octavius_curl($path), true);
 	// var_dump($json_result);
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
@@ -186,27 +192,51 @@ function octavius_save_data_from_service() {
 }
 
 function octavius_save_top($type, $url, $htaccess){
+
 	// Get Latest Data from Octavius
-
-    $ch = curl_init ();
-    $url = "http://octavius-dev.palasthotel.de".$url;
-    curl_setopt($ch,CURLOPT_URL,$url);
-    curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-    curl_setopt($ch,CURLOPT_USERPWD,$htaccess);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-    $result = curl_exec ($ch); 
-	$json_result = json_decode($result, true);
-	$values = array();
+	$json_result = json_decode(octavius_curl($url), true);
+	
 	// build values
+	$values = array();
 	foreach ($json_result as $key => $record) {
 		$values[] = "('".$record["page_id"]."','".$record["pageviews"]."')";
 	}
 	$values_string = implode(",", $values);
 
+	// save values
 	return db_query("INSERT INTO {octavius_top_list_".$type."} (nid, views) VALUES $values_string");
 
 }
+
+/**
+* Handles curl Requests to Octavius.
+* $url: Absolute Path
+*/
+function octavius_curl($url){
+	$ch = curl_init ();
+	
+	$settings = octavius_get_settings();
+	$octavius_url = $settings->url;
+	
+	// handle missing slashes
+	if(substr($octavius_url, -1) == "/" && substr($url, 0, 1) == "/"){
+		$octavius_url = substr($settings->url, 0, -1);
+	} else if(substr($octavius_url, -1) != "/" && substr($url, 0, 1) != "/"){
+		$octavius_url .= "/";
+	}
+
+	if($settings->ht_user && $settings->ht_passwd){
+		$htaccess = $settings->ht_user.":".$settings->ht_passwd;
+		curl_setopt($ch,CURLOPT_USERPWD,$htaccess);
+	}
+	
+    curl_setopt($ch,CURLOPT_URL, $octavius_url.$url);
+    curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
+    return curl_exec($ch); 
+}
+
 /**
 *	Gets top lists by type from database of octavius.
 */
@@ -235,7 +265,7 @@ function octavius_get_top_month(){
 /**
 *	Gets newest local data of the ever.
 */
-function octavius_get_top_week(){
+function octavius_get_top_ever(){
 	return octavius_get_top("ever");
 }
 
