@@ -7,8 +7,8 @@ function octavius_menu()
 {
 	return array(
 		'admin/config/octavius'=>array(
-			'title'=>'Octavius',
-			'description'=>'Configure Octavius',
+			'title'=>t('Octavius'),
+			'description'=>t('Configure Octavius'),
 			'page callback' => 'system_admin_menu_block_page',
 		   'file' => 'system.admin.inc',
 		   'file path' => drupal_get_path('module', 'system'),
@@ -16,24 +16,24 @@ function octavius_menu()
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'admin/config/octavius/service'=>array(
-			'title'=>'Service settings',
-			'description'=>'Configure Octavius service',
+			'title'=>t('Service settings'),
+			'description'=>t('Configure Octavius service'),
 			'page callback'=>'drupal_get_form',
 			'page arguments'=>array('octavius_service_settings'),
 			'access arguments'=>array('administer octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'admin/config/octavius/performance'=>array(
-			'title'=>'Performance settings',
-			'description'=>'Configure Octavius performance',
+			'title'=>t('Performance settings'),
+			'description'=>t('Configure Octavius performance'),
 			'page callback'=>'drupal_get_form',
 			'page arguments'=>array('octavius_performance_settings'),
 			'access arguments'=>array('setup octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'admin/config/octavius/blacklist'=>array(
-			'title'=>'Nodes blacklist',
-			'description'=>'Configure Octavius nodes blacklist',
+			'title'=>t('Blacklists'),
+			'description'=>t('Configure Octavius nodes blacklist'),
 			'page callback'=>'drupal_get_form',
 			'page arguments'=>array('octavius_blacklist'),
 			'access arguments'=>array('setup octavius'),
@@ -46,8 +46,7 @@ function octavius_menu()
 		'__api/octavius/importer' => array(
 			'page callback' => 'octavius_save_data_from_service',
 			'access callback'=>'octavius_public_access',
-		),	
-			
+		),				
 	);
 }
 /**
@@ -98,9 +97,8 @@ function octavius_service_settings()
 	);
 	
 	$form["service"]['octavius_ht_passwd'] = array(
-		'#type'=>'textfield',
+		'#type'=>'password',
 		'#title' => t('Password'),
-		'#default_value' => $settings->ht_passwd,
 	);
 
 	$form["service"]['octavius_service_url'] = array(
@@ -145,7 +143,7 @@ function octavius_blacklist()
 
 	$form['blacklist'] = array(
 		'#type'=>'fieldset',
-		'#title'=>t('Blacklist'),
+		'#title'=>t('Blacklists'),
 	);
 	$form["blacklist"]['octavius_blacklist_nids'] = array(
 		'#type'=>'textarea',
@@ -153,10 +151,15 @@ function octavius_blacklist()
 		'#description' => t('Comma separated list of node ids that are ignored by octavius. Best-practice is to prevent spaces and linebreaks as well.'),
 		'#default_value' => $settings->blacklist_nids,
 	);
+	$types = node_type_get_types();
+	$types_array = array();
+	foreach ($types as $type => $content_type) {
+		$types_array[] = $type;
+	}
 	$form["blacklist"]['octavius_blacklist_content_types'] = array(
 		'#type'=>'textarea',
 		'#title'=>t('Ignored content types'),
-		'#description' => t('Comma separated list of content types that are ignored by octavius. Best-practice is to prevent spaces and linebreaks as well.'),
+		'#description' => t('Comma separated list of content types that are ignored by octavius. Best-practice is to prevent spaces and linebreaks as well.<br> Available content types: '.implode(", ", $types_array)),
 		'#default_value' => $settings->blacklist_content_types,
 	);
 
