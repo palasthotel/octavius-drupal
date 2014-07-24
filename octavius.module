@@ -294,13 +294,13 @@ function octavius_save_data_from_service()
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
     	octavius_clean_table($type);
-    	$result = octavius_save_top($type, $source["url"], $htaccess);
+    	$result = octavius_save_top($type, $source["url"]);
     }
     module_invoke_all('octavius_new_data');
     return;
 }
 
-function octavius_save_top($type, $url, $htaccess){
+function octavius_save_top($type, $url){
 
 	// Get Latest Data from Octavius
 	$json_result = json_decode(octavius_curl($url), true);
