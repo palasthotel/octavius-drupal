@@ -12,7 +12,7 @@ function octavius_menu()
 			'page callback' => 'system_admin_menu_block_page',
 		   'file' => 'system.admin.inc',
 		   'file path' => drupal_get_path('module', 'system'),
-			'access arguments'=>array('administer octavius'),
+			'access arguments'=>array('setup octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'admin/config/octavius/service'=>array(
@@ -28,7 +28,15 @@ function octavius_menu()
 			'description'=>'Configure Octavius performance',
 			'page callback'=>'drupal_get_form',
 			'page arguments'=>array('octavius_performance_settings'),
-			'access arguments'=>array('administer octavius'),
+			'access arguments'=>array('setup octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+		),
+		'admin/config/octavius/blacklist'=>array(
+			'title'=>'Nodes blacklist',
+			'description'=>'Configure Octavius nodes blacklist',
+			'page callback'=>'drupal_get_form',
+			'page arguments'=>array('octavius_blacklist'),
+			'access arguments'=>array('setup octavius'),
 			'type'=>MENU_NORMAL_ITEM,
 		),
 		'__api/octavius/list' => array(
@@ -38,7 +46,8 @@ function octavius_menu()
 		'__api/octavius/importer' => array(
 			'page callback' => 'octavius_save_data_from_service',
 			'access callback'=>'octavius_public_access',
-		),		
+		),	
+			
 	);
 }
 /**
@@ -48,7 +57,21 @@ function octavius_public_access()
 {
 	return true;
 }
-
+/**
+*	Register octavius permission.
+*/
+function octavius_permission() {
+  return array(
+    'administer octavius' => array(
+      'title' => t('Octavius sevice settings'),
+      'description' => t('Settings for Octavius service'),
+    ),
+    'setup octavius' => array(
+      'title' => t('Octavius module settings'),
+      'description' => t('Performance settings for Octavius module'),
+    ),
+  );
+}
 /**
 *	Settings page for octavius service
 */
@@ -113,23 +136,93 @@ function octavius_performance_settings()
 }
 
 /**
+*	Settingspage for nodes blacklist that should be ignored for top lists.
+*/
+function octavius_blacklist()
+{
+	$form=array();
+	$settings = octavius_get_settings();
+
+	$form['blacklist'] = array(
+		'#type'=>'fieldset',
+		'#title'=>t('Blacklist'),
+	);
+	$form["blacklist"]['octavius_blacklist_nids'] = array(
+		'#type'=>'textarea',
+		'#title'=>t('Ignored node ids'),
+		'#description' => t('Comma separated list of node ids that are ignored by octavius. Best-practice is to prevent spaces and linebreaks as well.'),
+		'#default_value' => $settings->blacklist_nids,
+	);
+	$form["blacklist"]['octavius_blacklist_content_types'] = array(
+		'#type'=>'textarea',
+		'#title'=>t('Ignored content types'),
+		'#description' => t('Comma separated list of content types that are ignored by octavius. Best-practice is to prevent spaces and linebreaks as well.'),
+		'#default_value' => $settings->blacklist_content_types,
+	);
+
+	return system_settings_form($form);
+	
+}
+
+/**
 *	Collects all Settings.
 */
-function octavius_get_settings(){
+function octavius_get_settings()
+{	
+	// cleanup blacklist
+	$blacklist_nids = variable_get("octavius_blacklist_nids");
+	$blacklist_nids = str_replace(" ", "", $blacklist_nids);
+	$blacklist_nids = str_replace(array("\r","\n"), ",", $blacklist_nids);
+	$blacklist_nids = str_replace(array(",,,,",",,,",",,"), ",", $blacklist_nids);
+	if(strpos($blacklist_nids, ",") === false){
+		$blacklist_nids_array = array();
+	} else {
+		$blacklist_nids_array = explode(",", $blacklist_nids);
+	}
+
+	$blacklist_content_types = variable_get("octavius_blacklist_content_types");
+	$blacklist_content_types = str_replace(" ", "", $blacklist_content_types);
+	$blacklist_content_types = str_replace(array("\r","\n"), ",", $blacklist_content_types);
+	$blacklist_content_types = str_replace(array(",,,,",",,,",",,"), ",", $blacklist_content_types);
+	if(strpos($blacklist_content_types, ",") === false){
+		$blacklist_content_types_array = array();
+	} else {
+		$blacklist_content_types_array = explode(",", $blacklist_content_types);
+	}
+
 	return (Object) array(
 		"page_list_limit" => variable_get("octavius_page_list_limit",1000),
 		"ht_passwd" => variable_get("octavius_ht_passwd"),
 		"ht_user" => variable_get("octavius_ht_user"),
 		"client_name" => variable_get("octavius_service_client_name"),
 		"url" => variable_get("octavius_service_url", "http://octavius-dev.palasthotel.de"),
+		"blacklist_nids" => $blacklist_nids,
+		"blacklist_nids_array" => $blacklist_nids_array,
+		"blacklist_content_types" => $blacklist_content_types,
+		"blacklist_content_types_array" => $blacklist_content_types_array,
 	);
+}
 
+/**
+*	Get Blacklist as boolean list with nid as keys
+*/
+function octavius_get_blacklist(){
+	$ignored_list = (Object)array("nids" => array(), "content_types" => array() );
+	$settings = octavius_get_settings();
+	foreach($settings->blacklist_nids_array as $ignored) {
+		$ignored_list->nids[$ignored] = true;
+	}
+	foreach($settings->blacklist_content_types_array as $ignored) {
+		$ignored_list->content_types[$ignored] = true;
+	}
+	return $ignored_list;
 }
 
 /**
  * Return JSON formed URL List 
  */
-function octavius_url_list($page = null){
+function octavius_url_list($page = null)
+{
 
 	// redirect to /1 if no page number is given
 	if($page == null) drupal_goto("__api/octavius/list/1", array(), 301);
@@ -146,9 +239,25 @@ function octavius_url_list($page = null){
     $limit = $settings->page_list_limit;
     $low_limit = ( $page - 1 )  * $limit ;
 
-	$result = db_query("SELECT n.nid as nid, n.type as type , n.created as created FROM {node} n LIMIT $low_limit, $limit");
-	
+    $blacklist_cond = array();
+    // node ids
+    if(count($settings->blacklist_nids_array) > 0){
+    	$blacklist_cond[] = "nid NOT IN (".$settings->blacklist_nids.")";
+    }
+    // content types
+    if(count($settings->blacklist_content_types) > 0){
+    	$blacklist_cond[] ="type NOT IN('".str_replace(",", "','", $settings->blacklist_content_types)."')";
+    }
+
+    $where = "";
+    if(count($blacklist_cond) > 0){
+    	$where = "WHERE ".implode(" AND ", $blacklist_cond);
+    }
+
+	$result = db_query("SELECT n.nid as nid, n.type as type , n.created as created FROM {node} n $where LIMIT $low_limit, $limit");
+
 	foreach ($result as $record) {
+
 		$root["items"][] = array(
 			"type" => $record->type,
 			"id" => $record->nid,
@@ -156,7 +265,6 @@ function octavius_url_list($page = null){
 			"permalink" => "/".drupal_get_path_alias('node/'.$record->nid),
 			"pubDate" => date("Y-m-d H:i:s", $record->created),
 		);
-
 	}
 
     header("Content-Type: application/json;charset=UTF-8");
@@ -174,7 +282,8 @@ function octavius_clean_table($type){
 /**
  * Set Octavius Page Data to Meta Field
 */
-function octavius_save_data_from_service() {
+function octavius_save_data_from_service() 
+{
 
 	// get Latest Date from Octavius
 	$path = "/v1.0/".$settings->client_name."/getTopLists";
@@ -212,7 +321,8 @@ function octavius_save_top($type, $url, $htaccess){
 * Handles curl Requests to Octavius.
 * $url: Absolute Path
 */
-function octavius_curl($url){
+function octavius_curl($url)
+{
 	$ch = curl_init ();
 	
 	$settings = octavius_get_settings();
@@ -240,32 +350,37 @@ function octavius_curl($url){
 /**
 *	Gets top lists by type from database of octavius.
 */
-function octavius_get_top($type){
+function octavius_get_top($type)
+{
 	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDER BY views DESC");
 	return $result->fetchAll();
 }
 /**
 *	Gets newest local data of the day.
 */
-function octavius_get_top_day(){
+function octavius_get_top_day()
+{
 	return octavius_get_top("day");
 }
 /**
 *	Gets newest local data of the week.
 */
-function octavius_get_top_week(){
+function octavius_get_top_week()
+{
 	return octavius_get_top("week");
 }
 /**
 *	Gets newest local data of the month.
 */
-function octavius_get_top_month(){
+function octavius_get_top_month()
+{
 	return octavius_get_top("month");
 }
 /**
 *	Gets newest local data of the ever.
 */
-function octavius_get_top_ever(){
+function octavius_get_top_ever()
+{
 	return octavius_get_top("ever");
 }
 
