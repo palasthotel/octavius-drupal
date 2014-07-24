@@ -287,17 +287,14 @@ function octavius_clean_table($type){
 */
 function octavius_save_data_from_service() 
 {
-
+	$settings = octavius_get_settings();
 	// get Latest Date from Octavius
 	$path = "/v1.0/".$settings->client_name."/getTopLists";
-
     $json_result = json_decode(octavius_curl($path), true);
-	// var_dump($json_result);
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
     	octavius_clean_table($type);
     	$result = octavius_save_top($type, $source["url"], $htaccess);
-    	// var_dump($result);
     }
     module_invoke_all('octavius_new_data');
     return;
