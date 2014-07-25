@@ -22,6 +22,7 @@ function octavius_menu()
 			'page arguments'=>array('octavius_service_settings'),
 			'access arguments'=>array('administer octavius'),
 			'type'=>MENU_NORMAL_ITEM,
+			'weight' => 1,
 		),
 		'admin/config/octavius/performance'=>array(
 			'title'=>t('Performance settings'),
@@ -30,6 +31,7 @@ function octavius_menu()
 			'page arguments'=>array('octavius_performance_settings'),
 			'access arguments'=>array('setup octavius'),
 			'type'=>MENU_NORMAL_ITEM,
+			'weight' => 2,
 		),
 		'admin/config/octavius/blacklist'=>array(
 			'title'=>t('Blacklists'),
@@ -38,6 +40,15 @@ function octavius_menu()
 			'page arguments'=>array('octavius_blacklist'),
 			'access arguments'=>array('setup octavius'),
 			'type'=>MENU_NORMAL_ITEM,
+			'weight' => 3,
+		),
+		'admin/config/octavius/log'=>array(
+			'title'=>t('Log'),
+			'description'=>t('Log of newest top lists'),
+			'page callback'=>array('octavius_log'),
+			'access arguments'=>array('setup octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+			'weight' => 4,
 		),
 		'__api/octavius/list' => array(
 			'page callback' => 'octavius_url_list',
@@ -291,6 +302,7 @@ function octavius_save_data_from_service()
 	// get Latest Date from Octavius
 	$path = "/v1.0/".$settings->client_name."/getTopLists";
     $json_result = json_decode(octavius_curl($path), true);
+    var_dump($result); 
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
     	octavius_clean_table($type);
@@ -310,7 +322,10 @@ function octavius_save_top($type, $url){
 	foreach ($json_result as $key => $record) {
 		$values[] = "('".$record["page_id"]."','".$record["pageviews"]."')";
 	}
-	$values_string = implode(",", $values);
+	if(count($values) > 0 ){
+		$values_string = implode(",", $values);
+	}
+	
 
 	// save values
 	return db_query("INSERT INTO {octavius_top_list_".$type."} (nid, views) VALUES $values_string");
@@ -382,6 +397,23 @@ function octavius_get_top_month()
 function octavius_get_top_ever()
 {
 	return octavius_get_top("ever");
+}
+/**
+*	Renders Data Log page.
+*/
+function octavius_log(){
+	$output = "";
+	$day = array();
+	foreach (octavius_get_top_day() as $top) {
+		$day[] = "<li>Nid: ".$top->nid." -> Pageviews: ".$top->views."</li>";
+	}
+	if(count($day)>0{
+		$output .= "<h2>".t("Top of Yesterday")."<ul>".implode("", $day)."</ul>";
+	} else {
+		$output .= "<h2>No tops of yesterday</h2>";
+	}
+
+	return "<h1>Log:</h1>".$output;
 }
 
 
