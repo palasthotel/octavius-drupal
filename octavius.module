@@ -237,7 +237,9 @@ function octavius_get_blacklist(){
  */
 function octavius_url_list($page = null)
 {
-
+	// prevent cache and varnish
+	drupal_page_is_cacheable(FALSE);
+	header("Cache-Control: no-cache");
 	// redirect to /1 if no page number is given
 	if($page == null) drupal_goto("__api/octavius/list/1", array(), 301);
 
@@ -298,21 +300,25 @@ function octavius_clean_table($type){
 */
 function octavius_save_data_from_service() 
 {
+	// prevent cache and varnish
+	drupal_page_is_cacheable(FALSE);
+	header("Cache-Control: no-cache");
+
 	$settings = octavius_get_settings();
 	// get Latest Date from Octavius
 	$path = "/v1.0/".$settings->client_name."/getTopLists";
     $json_result = json_decode(octavius_curl($path), true);
-    var_dump($result); 
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
-    	octavius_clean_table($type);
+    	// octavius_clean_table($type);
     	$result = octavius_save_top($type, $source["url"]);
     }
-    module_invoke_all('octavius_new_data');
+    module_invoke_all('octavius_new_data', $json_result); 
     return;
 }
 
-function octavius_save_top($type, $url){
+function octavius_save_top($type, $url)
+{
 
 	// Get Latest Data from Octavius
 	$json_result = json_decode(octavius_curl($url), true);
@@ -322,13 +328,12 @@ function octavius_save_top($type, $url){
 	foreach ($json_result as $key => $record) {
 		$values[] = "('".$record["page_id"]."','".$record["pageviews"]."')";
 	}
-	if(count($values) > 0 ){
-		$values_string = implode(",", $values);
+	if(count($values) < 1 ){
+		return false;
 	}
-	
-
+	$values_string = implode(",", $values);
 	// save values
-	return db_query("INSERT INTO {octavius_top_list_".$type."} (nid, views) VALUES $values_string");
+	return db_query("INSERT INTO {octavius_top_list_$type} (nid, views) VALUES $values_string ON DUPLICATE KEY UPDATE views = VALUES(views);");
 
 }
 
@@ -365,55 +370,66 @@ function octavius_curl($url)
 /**
 *	Gets top lists by type from database of octavius.
 */
-function octavius_get_top($type)
+function octavius_get_top($type, $page = 1, $limit = 150)
 {
-	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDER BY views DESC");
+    $low_limit = ( $page - 1 )  * $limit ;
+	$result = db_query("SELECT * FROM {octavius_top_list_".$type."} ORDER BY views DESC LIMIT $low_limit, $limit");
 	return $result->fetchAll();
 }
 /**
 *	Gets newest local data of the day.
 */
-function octavius_get_top_day()
+function octavius_get_top_day($page = 1, $limit = 150)
 {
-	return octavius_get_top("day");
+	return octavius_get_top("day",$page , $limit);
 }
 /**
 *	Gets newest local data of the week.
 */
-function octavius_get_top_week()
+function octavius_get_top_week($page = 1, $limit = 150)
 {
-	return octavius_get_top("week");
+	return octavius_get_top("week",$page , $limit);
 }
 /**
 *	Gets newest local data of the month.
 */
-function octavius_get_top_month()
+function octavius_get_top_month($page = 1, $limit = 150)
 {
-	return octavius_get_top("month");
+	return octavius_get_top("month",$page , $limit);
 }
 /**
 *	Gets newest local data of the ever.
 */
-function octavius_get_top_ever()
+function octavius_get_top_ever($page = 1, $limit = 150)
 {
-	return octavius_get_top("ever");
+	return octavius_get_top("ever",$page , $limit);
 }
 /**
 *	Renders Data Log page.
 */
 function octavius_log(){
 	$output = "";
-	$day = array();
-	foreach (octavius_get_top_day() as $top) {
-		$day[] = "<li>Nid: ".$top->nid." -> Pageviews: ".$top->views."</li>";
+	$output .= octavius_render_log("day");
+	$output .= octavius_render_log("week");
+	$output .= octavius_render_log("month");
+	$output .= octavius_render_log("ever");
+	return $output;
+}
+/**
+*	Render a single log list.
+*/
+function octavius_render_log($type){
+	$output = "";
+	$entries = array();
+	foreach (octavius_get_top($type) as $top) {
+		$entries[] = "<li>Nid: ".$top->nid." -> Pageviews: ".$top->views."</li>";
 	}
-	if(count($day)>0{
-		$output .= "<h2>".t("Top of Yesterday")."<ul>".implode("", $day)."</ul>";
+	if(count($entries)>0 ){
+		$output .= "<h2>".t("Top of $type")."</h2><ol>".implode("", $entries)."</ol>";
 	} else {
-		$output .= "<h2>No tops of yesterday</h2>";
+		$output .= "<h2>No tops of $type</h2>";
 	}
-
-	return "<h1>Log:</h1>".$output;
+	return $output;
 }
 
 
