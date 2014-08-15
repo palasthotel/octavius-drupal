@@ -311,7 +311,21 @@ function octavius_save_data_from_service()
     foreach ($json_result as $type => $source) {
     	// Get Latest Data from Octavius
     	// octavius_clean_table($type);
-    	$result = octavius_save_top($type, $source["url"]);
+    	
+    	switch ($type) {
+    		case 'day':
+    		case 'week':
+    		case 'month':
+    		case 'ever':
+    			$result = octavius_save_top($type, $source["url"]);
+    			break;
+    		case 'facebook':
+    			// TODO: save in facebook table
+    		case 'twitter':
+    			// TODO: save in twitter table
+    		default:
+    			break;
+    	}
     }
     module_invoke_all('octavius_new_data', $json_result); 
     return;
