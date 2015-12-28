@@ -9,5 +9,7 @@ $settings = octavius_get_settings();
       service: '<?php echo $settings->url; ?>',
     };
     w.Octavius.init(config);
+    w.Octavius.setAttribute('pagetype','cooler_node');
+    w.Octavius.setAttribute('nodeid','123456789');
   });
 }(window, document));
