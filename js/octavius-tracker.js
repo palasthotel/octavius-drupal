@@ -49,6 +49,7 @@
 			 */
 			_oc.hook.call('tracker_event_alter', event);
 			_oc.hook.call('tracker_entity_alter', entity);
+
 			/**
 			 * build data object
 			 * @type {{entity, event}}
@@ -57,6 +58,7 @@
 				entity: JSON.stringify(entity),
 				event: JSON.stringify(event),
 			};
+
 			/**
 			 * for for manipulating data before send to server
 			 */
@@ -236,5 +238,10 @@
 	 * add plugin to octavius
 	 */
 	w.Octavius.add_plugin('Tracker',Tracker);
+
+	w.Octavius.hook.register('tracker_data_alter',function(entity){
+		entity.test = "ja";
+		return true;
+	});
 
 })(window,document);
