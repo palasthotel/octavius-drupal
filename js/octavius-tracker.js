@@ -8,45 +8,63 @@
 		var self = this;
 		var _oc = octavius;
 		var _time_start;
-		this.init = function(octacius){
+		var _selectors = {
+			target: "a[href], button, input[type=submit]",
+			//renderedTarget: "a:not(."+config.ignore_rendered_class+")[href][data-octavius-content_id]",
+			grid: ".grid",
+			grid_container: ".grid-container",
+			grid_slot: ".grid-slot",
+			grid_box: ".grid-box",
+			list: "li",
+		}
+		function _init(octacius){
 			var links = d.querySelectorAll('a[href]');
 			for(var i = 0; i < links.length; i++){
 				links[i].addEventListener('click', _on_click);
 			}
 			_time_start = new Date().getTime();
 		}
+		_oc.hook_core_ready(_init);
+
 		/**
 		 * on click on link
 		 */
 		function _on_click(e){
 			e.preventDefault();
-
-			var grid_box = _closest(this,'.grid-box');
-			var grid_box_index = (grid_box)? _get_index(grid_box): null;
-			console.log("box "+grid_box_index);
-			var grid_slot = _closest(this,'.grid-slot');
-			var grid_slot_index = (grid_slot)? _get_index(grid_slot): null;
-			console.log("slot "+grid_slot_index);
-			var grid_container = _closest(this, '.grid-container');
-			var grid_container_index = (grid_container)? _get_index(grid_container): null;
-			console.log("container "+grid_container_index);
-
-
 			var event = {
 				type: 'click',
 				measured: _get_date(),
 				resting_time: _get_resting_time(),
-			}
+			};
+			var entity = _build_entity(this);
+			self.track(event,entity);
+		}
 
+		/**
+		 * track data to server
+		 */
+		this.track = function(event,entity){
+			/**
+			 * hook event and entity alters
+			 */
+			_oc.hook.call('tracker_event_alter', event);
+			_oc.hook.call('tracker_entity_alter', entity);
+			/**
+			 * build data object
+			 * @type {{entity, event}}
+			 */
 			var data = {
-				entity: JSON.stringify(_build_entity(this)),
+				entity: JSON.stringify(entity),
 				event: JSON.stringify(event),
 			};
-
-			// track click with details
+			/**
+			 * for for manipulating data before send to server
+			 */
+			_oc.hook.call('tracker_data_alter', data);
+			/**
+			 * send the request
+			 */
 			_oc.ajax.post('/track',data);
-
-
 		}
 
 		/**
@@ -95,7 +113,7 @@
 			/**
 			 * get grid values if there is a grid around
 			 */
-			var grid = _closest(element, '.grid');
+			var grid = _closest(element, _selectors.grid);
 			if(grid){
 				/**
 				 * can be overwritten by
@@ -103,15 +121,15 @@
 				 * data-octavius-grid_slot_number
 				 * data-octavius-grid_box_number
 				 */
-				var container = _closest(element, '.grid-container');
+				var container = _closest(element, _selectors.grid_container);
 				if(container){
 					entity.grid_container_number = _get_index(container)+1;
 				}
-				var slot = _closest(element, '.grid-slot');
+				var slot = _closest(element, _selectors.grid_slot);
 				if(slot){
 					entity.grid_slot_number = _get_index(slot)+1;
 				}
-				var box = _closest(element, '.grid-box');
+				var box = _closest(element, _selectors.grid_box);
 				if(box){
 					entity.grid_slot_number = _get_index(box)+1;
 				}
@@ -121,7 +139,7 @@
 				 * can be overwritten by
 				 * data-octavius-list_number
 				 */
-				var list = _closest(element, 'li');
+				var list = _closest(element, _selectors.list);
 				if(list){
 					entity.list_number = _get_index(list)+1;
 				}
