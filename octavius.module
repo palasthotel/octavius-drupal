@@ -6,7 +6,7 @@
  * Implements hook_js_alter().
  */
 function octavius_js_alter(){
-
+	$settings = octavius_get_settings();
 	/**
 	 * get all plugin js
 	 */
@@ -24,10 +24,10 @@ function octavius_js_alter(){
 	 * add core and config if needed
 	 */
 	if(count($admin_paths)){
-		octavius_add_js('http://dev-edward.service.octavius.rocks/socket.io/socket.io.js',1,'external');
+		octavius_add_js($settings->url.'/socket.io/socket.io.js',1,'external');
 	}
 	if(count($paths) || count($admin_paths)){
-		octavius_add_js('http://dev-edward.service.octavius.rocks/files/octavius.core.v1.0.js',2,'external');
+		octavius_add_js($settings->url.'/files/octavius.core.v1.0.js',2,'external');
 		ob_start();
 		include 'config.js.php';
 		$config_js = ob_get_contents();
