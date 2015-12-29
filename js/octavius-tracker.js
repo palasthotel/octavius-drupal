@@ -30,7 +30,6 @@
 		 * on click on link
 		 */
 		function _on_click(e){
-			e.preventDefault();
 			var event = {
 				type: 'click',
 				measured: _get_date(),

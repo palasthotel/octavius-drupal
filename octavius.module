@@ -23,8 +23,10 @@ function octavius_js_alter(){
 	/**
 	 * add core and config if needed
 	 */
-	if(count($paths) || count($admin_paths)){
+	if(count($admin_paths)){
 		octavius_add_js('http://dev-edward.service.octavius.rocks/socket.io/socket.io.js',1,'external');
+	}
+	if(count($paths) || count($admin_paths)){
 		octavius_add_js('http://dev-edward.service.octavius.rocks/files/octavius.core.v1.0.js',2,'external');
 		ob_start();
 		include 'config.js.php';
