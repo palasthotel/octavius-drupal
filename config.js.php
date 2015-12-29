@@ -2,14 +2,26 @@
 $settings = octavius_get_settings();
 ?>
 
-(function(w,d){
-  d.addEventListener("DOMContentLoaded", function(event) {
+(function(){
+  function _on_loaded(){
+    console.log('on loaded');
     var config = {
       api_key: '<?php echo $settings->api_key; ?>',
       service: '<?php echo $settings->url; ?>',
     };
-    w.Octavius.init(config);
-    w.Octavius.setAttribute('pagetype','cooler_node');
-    w.Octavius.setAttribute('nodeid','123456789');
-  });
-}(window, document));
+    window.Octavius.init(config);
+    window.Octavius.setAttribute('pagetype','cooler_node');
+    window.Octavius.setAttribute('nodeid','123456789');
+  }
+  if(document.addEventListener){
+    document.addEventListener("DOMContentLoaded", _on_loaded);
+  } else {
+    document.attachEvent('onDOMContentLoaded',function(){
+      if ( document.readyState === "complete" ) {
+        _on_loaded()
+      }
+    });
+  }
+
+
+}());

@@ -9,35 +9,16 @@
 		var _oc = octavius;
 		var _time_start;
 		var _selectors = {
-			target: "a[href], button, input[type=submit]",
-			//renderedTarget: "a:not(."+config.ignore_rendered_class+")[href][data-octavius-content_id]",
 			grid: ".grid",
 			grid_container: ".grid-container",
 			grid_slot: ".grid-slot",
 			grid_box: ".grid-box",
 			list: "li",
-		}
-		function _init(octacius){
-			var links = d.querySelectorAll('a[href]');
-			for(var i = 0; i < links.length; i++){
-				links[i].addEventListener('click', _on_click);
-			}
+		};
+		function _init(){
 			_time_start = new Date().getTime();
 		}
 		_oc.hook_core_ready(_init);
-
-		/**
-		 * on click on link
-		 */
-		function _on_click(e){
-			var event = {
-				type: 'click',
-				measured: _get_date(),
-				resting_time: _get_resting_time(),
-			};
-			var entity = _build_entity(this);
-			self.track(event,entity);
-		}
 
 		/**
 		 * track data to server
@@ -71,7 +52,7 @@
 		/**
 		 * get times
 		 */
-		function _get_date(){
+		this.get_date = function(){
 			var d = new Date();
 			/**
 			 * because toISOString calculates with GTM+0
@@ -80,14 +61,14 @@
 			d = new Date(d.getTime()+(d.getTimezoneOffset()*-1)*60*1000);
 			return d.toISOString().slice(0, 19).replace('T', ' ');
 		}
-		function _get_resting_time(){
+		this.get_resting_time = function(){
 			return new Date().getTime()-_time_start;
 		}
 
 		/**
 		 * build entity
 		 */
-		function _build_entity(element){
+		this.build_entity = function(element){
 			/**
 			 * now get the entity datas
 			 */
@@ -236,11 +217,83 @@
 	/**
 	 * add plugin to octavius
 	 */
-	w.Octavius.add_plugin('Tracker',Tracker);
+	if(typeof w.Octavius != typeof undefined) w.Octavius.add_plugin('Tracker',Tracker);
 
-	w.Octavius.hook.register('tracker_data_alter',function(entity){
-		entity.test = "ja";
-		return true;
-	});
+	/**
+	 * click tracker
+	 */
+	function ClickTracker(octavius){
+		var _oc = octavius;
+		var _tracker = null;
+		var _selectors = {
+			target: "a[href], button, input[type=submit]",
+		};
+		function _init(){
+			console.log('init click tracker');
+			_tracker = _oc.get_plugin('Tracker');
+			var links = d.querySelectorAll(_selectors.target);
+			console.log(links);
+			for(var i = 0; i < links.length; i++){
+				links[i].addEventListener('click', _on_click);
+			}
+		}
+		_oc.hook_core_ready(_init);
+		/**
+		 * on click on link
+		 */
+		function _on_click(){
+			var event = {
+				type: 'click',
+				measured: _tracker.get_date(),
+				resting_time: _tracker.get_resting_time(),
+			};
+			var entity = _tracker.build_entity(this);
+			_tracker.track(event,entity);
+		}
+	}
+	/**
+	 * add plugin to octavius
+	 */
+	if(typeof w.Octavius != typeof undefined) w.Octavius.add_plugin('ClickTracker',ClickTracker);
+
+	/**
+	 * click tracker
+	 */
+	function RenderedTracker(octavius){
+		var _oc = octavius;
+		var _tracker = null;
+		var _selectors = {
+			target: "a:not(.oc-ignore-rendered)[href][data-octavius-content_id]",
+			attribute_rendered: "data-rendered",
+		};
+		function _init(){
+			_tracker = _oc.get_plugin('Tracker');
+			var elements = d.querySelectorAll(_selectors.target);
+			console.log(elements);
+			for(var i = 0; i < elements.length; i++){
+				_save_rendered(elements[i]);
+			}
+		}
+		_oc.hook_core_ready(_init);
+
+		/**
+		 * on click on link
+		 */
+		function _save_rendered(element){
+			if(element.getAttribute(_selectors.attribute_rendered)) return;
+			element.setAttribute(_selectors.attribute_rendered, true);
+			var event = {
+				type: 'rendered',
+				measured: _tracker.get_date(),
+				resting_time: _tracker.get_resting_time(),
+			};
+			var entity = _tracker.build_entity(element);
+			_tracker.track(event,entity);
+		}
+	}
+	/**
+	 * add plugin to octavius
+	 */
+	if(typeof w.Octavius != typeof undefined) w.Octavius.add_plugin('ClickTracker',RenderedTracker);
 
 })(window,document);
