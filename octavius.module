@@ -115,6 +115,10 @@ function octavius_permission() {
       'title' => t('Octavius module settings'),
       'description' => t('Performance settings for Octavius module'),
     ),
+	  'results octavius' => array(
+		  'title' => t('Octavius result pages'),
+		  'description' => t('All pages that display results from octavius tracking'),
+	  ),
   );
 }
 /**
