@@ -4,7 +4,6 @@ $settings = octavius_get_settings();
 
 (function(){
   function _on_loaded(){
-    console.log('on loaded');
     var config = {
       api_key: '<?php echo $settings->api_key; ?>',
       service: '<?php echo $settings->url; ?>',

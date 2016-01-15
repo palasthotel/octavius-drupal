@@ -2,6 +2,10 @@
 /**
  * Implements hook_preprocess().
  */
+function octavius_init(){
+    global $user;
+    drupal_add_js(array('user_js_uid' => $user->uid), 'setting');
+}
 /**
  * Implements hook_js_alter().
  */
@@ -57,7 +61,7 @@ function octavius_add_js($js, $weight = 10, $type = 'file'){
 
 function octavius_octavius_plugins_alter(&$paths){
 	$base = drupal_get_path('module','octavius');
-	$paths[] = $base.'/js/octavius-tracker.js';
+	$paths[] = $base.'/js/octavius_escape_admin.js';
 }
 
 /**
@@ -84,15 +88,15 @@ function octavius_menu()
 			'type'=>MENU_NORMAL_ITEM,
 			'weight' => 1,
 		),
-		'admin/config/octavius/ab'=>array(
-			'title'=>t('AB Tests'),
-			'description'=>t('Configure AB Tests'),
-			'page callback'=>'drupal_get_form',
-			'page arguments'=>array('octavius_ab_settings'),
-			'access arguments'=>array('setup octavius'),
-			'type'=>MENU_NORMAL_ITEM,
-			'weight' => 2,
-		),
+//		'admin/config/octavius/ab'=>array(
+//			'title'=>t('AB Tests'),
+//			'description'=>t('Configure AB Tests'),
+//			'page callback'=>'drupal_get_form',
+//			'page arguments'=>array('octavius_ab_settings'),
+//			'access arguments'=>array('setup octavius'),
+//			'type'=>MENU_NORMAL_ITEM,
+//			'weight' => 2,
+//		),
 	);
 }
 /**
@@ -158,13 +162,13 @@ function octavius_ab_settings()
 	$form=array();
 	$settings = octavius_get_settings();
 
-	$form['performance'] = array(
+	$form['ab'] = array(
 		'#type'=>'fieldset',
-		'#title'=>t('Performance settings'),
+		'#title'=>t('AB settings'),
 	);
-	$form["performance"]['octavius_page_list_limit'] = array(
+	$form["ab"]['ab_samplesize'] = array(
 		'#type'=>'textfield',
-		'#title'=>t('How many Nodes should be delivered on a single Page?'),
+		'#title'=>t('Samplesize?'),
 		'#default_value' => $settings->page_list_limit,
 	);
 
