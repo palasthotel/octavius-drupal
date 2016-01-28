@@ -4,8 +4,7 @@
 		var _oc = octavius;
 		function _ready(){
 			if(Drupal.settings.user_js_uid != 0){
-				console.log('ADMIN');
-				_oc.hook.register('tracker_do_tracking',_do_tracking);
+				_oc.hook.register('tracker_do_track',_do_tracking);
 			}
 		}
 		_oc.hook_core_ready(_ready);

@@ -88,15 +88,14 @@ function octavius_menu()
 			'type'=>MENU_NORMAL_ITEM,
 			'weight' => 1,
 		),
-//		'admin/config/octavius/ab'=>array(
-//			'title'=>t('AB Tests'),
-//			'description'=>t('Configure AB Tests'),
-//			'page callback'=>'drupal_get_form',
-//			'page arguments'=>array('octavius_ab_settings'),
-//			'access arguments'=>array('setup octavius'),
-//			'type'=>MENU_NORMAL_ITEM,
-//			'weight' => 2,
-//		),
+		'admin/config/octavius/results'=>array(
+			'title'=>t('Results'),
+			'description'=>t('View results'),
+			'page callback'=>'octavius_results_page',
+			'access arguments'=>array('results octavius'),
+			'type'=>MENU_NORMAL_ITEM,
+			'weight' => 2,
+		),
 	);
 }
 /**
@@ -157,22 +156,10 @@ function octavius_service_settings()
 /**
 *	Settings page for octavius performance
 */
-function octavius_ab_settings()
+function octavius_results_page()
 {
-	$form=array();
-	$settings = octavius_get_settings();
-
-	$form['ab'] = array(
-		'#type'=>'fieldset',
-		'#title'=>t('AB settings'),
-	);
-	$form["ab"]['ab_samplesize'] = array(
-		'#type'=>'textfield',
-		'#title'=>t('Samplesize?'),
-		'#default_value' => $settings->page_list_limit,
-	);
-
-	return system_settings_form($form);
+	// TODO: render octavius results webapp
+	return "<p>result</p>";
 	
 }
 
@@ -199,8 +186,56 @@ function octavius_block_info() {
 	return $blocks;
 }
 function octavius_block_view($delta = '') {
+	global $user;
+	if($user->uid > 0){
+		return;
+	}
 	$settings = octavius_get_settings();
+	if($settings->api_key == "") return;
+
 	$src = $settings->url."/track/".$settings->api_key;
+
+	$query = array();
+
+	/**
+	 * get pagetype
+	 */
+	$query["pagetype"] = octavius_get_pagetype();
+
+	/**
+	 * get content id
+	 */
+	if ( arg(0) == 'node' && is_numeric(arg(1)) && ! arg(2) ) {
+		// node page
+		$query['content_id'] = arg(1);
+	} else if(arg(0) == "taxonomy" && arg(1) == "term" && is_numeric(arg(2)) && ! arg(3)){
+		// taxonomy term page
+		$query['content_id'] = arg(2);
+	}
+
+	/**
+	 * get path
+	 */
+	$query["url"] = url(current_path());
+
+	/**
+	 * let other plugins alter the query
+	 */
+	drupal_alter('octavius_query', $query);
+
+	/**
+	 * build key value pairs
+	 */
+	$all = array();
+	foreach ($query as $field => $value) {
+		$all[] = $field."=".$value;
+	}
+
+	/**
+	 * pixel source addresse
+	 */
+	$src.= "?".implode("&", $all);
+
 	ob_start();
 	?>
 	<img style="height: 0px;width: 0px;overflow: hidden;position: absolute;bottom: 0;left: 0;z-index: -10;" src="<?php echo $src; ?>" />
@@ -208,5 +243,14 @@ function octavius_block_view($delta = '') {
 	$content = ob_get_contents();
 	ob_end_clean();
 	return array('content' => $content);
+}
+
+/**
+ * look for page type
+ * @return [string] name of pagetype
+ */
+function octavius_get_pagetype(){
+	if(drupal_is_front_page()) return "home";
+	return arg(0);
 }
 ?>
