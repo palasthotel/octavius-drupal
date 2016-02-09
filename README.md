@@ -1,3 +1,3 @@
-Octavius Module for drupal
+Octavius Rocks Module for drupal
 ===============
 

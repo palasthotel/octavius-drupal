@@ -56,6 +56,7 @@ function octavius_add_js($js, $weight = 10, $type = 'file'){
 		,array(
 		'type' => $type,
 		'weight' => $weight,
+	  	'scope' => 'footer',
 	));
 }
 
