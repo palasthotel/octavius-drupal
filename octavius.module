@@ -5,11 +5,12 @@
 function octavius_init(){
     global $user;
     drupal_add_js(array('user_js_uid' => $user->uid), 'setting');
+    octavius_init_js();
 }
 /**
- * Implements hook_js_alter().
+ * adds all js files
  */
-function octavius_js_alter(){
+function octavius_init_js(){
 	$settings = octavius_get_settings();
 	/**
 	 * get all plugin js
@@ -62,9 +63,40 @@ function octavius_add_js($js, $weight = 10, $type = 'file'){
 
 }
 
+/**
+ * add public js files
+ * @param $paths
+ */
 function octavius_octavius_plugins_alter(&$paths){
 	$base = drupal_get_path('module','octavius');
 	$paths[] = $base.'/js/octavius_escape_admin.js';
+}
+
+/**
+ * add admin js files
+ * @param $paths
+ */
+function octavius_octavius_admin_plugins_alter(&$paths){
+    $need_query = false;
+    drupal_alter('octavius_need_query_js', $need_query);
+    if($need_query){
+      $base = drupal_get_path('module','octavius');
+      $paths[] = $base.'/js/query.js';
+      /**
+       * results page js
+       */
+      $paths[] = $base.'/js/results.js';
+    }
+}
+
+/**
+ * add query js if on results page
+ * Implements hook_octavius_need_query_js_alter().
+ */
+function octavius_octavius_need_query_js_alter(&$need) {
+  if((0) == "admin" && arg(1) == "config" && arg(2) == 'octavius' && arg(3) == 'results'){
+    $need = true;
+  }
 }
 
 /**
@@ -162,7 +194,7 @@ function octavius_service_settings()
 function octavius_results_page()
 {
 	// TODO: render octavius results webapp
-	return "<p>result</p>";
+	return "<div id='octavius-results'>result</div>";
 	
 }
 

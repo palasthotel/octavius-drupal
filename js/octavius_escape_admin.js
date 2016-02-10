@@ -4,6 +4,7 @@
 		var _oc = octavius;
 		function _ready(){
 			if(Drupal.settings.user_js_uid != 0){
+				_oc.setAttribute('no_tracking', true);
 				_oc.hook.register('tracker_do_track',_do_tracking);
 			}
 		}
